@@ -24,9 +24,17 @@ ng-serve*.log
 
 # IDEs
 .vs/
-.vscode/
+.vscode/settings.json
 .idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln.docstates
 
 # OS
 Thumbs.db
 .DS_Store
+
+# Env
+*.env.local
+**/*.env.local

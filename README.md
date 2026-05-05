@@ -1,96 +1,332 @@
 # OmniERP Orders PoC
 
-Proof of concept full stack for the **Order Editing Module** of OmniERP.
+> Prueba de Concepto Full Stack para el Módulo de Edición de Pedidos de OmniERP.
+> Stack: ASP.NET Core 8 · Angular 18+ · Clean Architecture · Docker
 
-The project is intentionally scoped to two production-style concerns:
+---
 
-- Backend caching for rarely changing order form catalogs.
-- Optimistic concurrency control to prevent silent data loss during concurrent order edits.
+## Tabla de contenidos
 
-## Stack
+1. [Contexto del problema](#1-contexto-del-problema)
+2. [Solución técnica](#2-solución-técnica)
+3. [Stack y arquitectura](#3-stack-y-arquitectura)
+4. [Ejecución rápida con Docker](#4-ejecución-rápida-con-docker)
+5. [Ejecución local sin Docker](#5-ejecución-local-sin-docker)
+6. [Endpoints disponibles](#6-endpoints-disponibles)
+7. [Validación manual — Problema A (caché)](#7-validación-manual--problema-a-caché)
+8. [Validación manual — Problema B (concurrencia)](#8-validación-manual--problema-b-concurrencia)
+9. [Pruebas automatizadas](#9-pruebas-automatizadas)
+10. [Estructura del repositorio](#10-estructura-del-repositorio)
+11. [Decisiones técnicas](#11-decisiones-técnicas)
 
-- Backend: ASP.NET Core Web API, C#, Clean Architecture, xUnit.
-- Frontend: Angular 18+, standalone components, Reactive Forms, Signals.
-- Persistence target: EF Core InMemory or SQLite.
-- Cache target: IMemoryCache behind an `ICacheProvider` port.
+---
 
-## Current State
+## 1. Contexto del problema
 
-This repository currently contains the base monorepo structure, domain model, Application DTOs, Application ports, Application use cases, Infrastructure adapters, REST API endpoints, and an initial Angular order edit UI.
+### Problema A — Cuello de botella en catálogos
 
-## Main Folders
+El formulario de edición de pedidos necesita cargar catálogos de valores de referencia: estados de pedido y métodos de envío. Estos valores cambian raramente, pero cada apertura del formulario dispara una lectura a la base de datos que tarda aproximadamente 2 segundos.
 
-- `backend/`: .NET solution, source projects, and test projects.
-- `frontend/`: Angular 18+ application.
-- `docs/`: Mermaid diagrams and manual API request file.
+Con múltiples agentes trabajando simultáneamente, este patrón satura la red y la base de datos con lecturas idénticas y repetidas para datos que prácticamente no cambian.
 
-## Infrastructure
+**Síntoma observable:** la primera carga del formulario tarda ~2 s. Las siguientes deberían ser instantáneas pero no lo son si no hay caché.
 
-- Local persistence uses EF Core InMemory for the PoC.
-- Initial seed creates demo order `1001`.
-- Catalog reads use a slow source simulator.
-- Runtime cache uses `IMemoryCache` behind the Application `ICacheProvider` port.
+### Problema B — Pérdida silenciosa de datos por concurrencia
 
-## Run The API
+Dos agentes abren el mismo pedido al mismo tiempo. Ambos ven la versión 1. El Agente 1 guarda un cambio en la dirección de entrega y el sistema incrementa la versión a 2. El Agente 2, sin recargar, guarda un cambio en el comentario interno con la versión 1 obsoleta.
 
-```powershell
-dotnet run --project backend/src/OmniERP.Api
+Sin protección de concurrencia, el sistema aplica el cambio del Agente 2, sobrescribiendo silenciosamente la dirección del Agente 1. El dato queda incorrecto sin que ningún agente lo sepa.
+
+**Síntoma observable:** un agente puede perder cambios guardados sin ningún aviso de error.
+
+---
+
+## 2. Solución técnica
+
+### Solución A — Caché backend con IMemoryCache
+
+El caso de uso `GetOrderFormCatalogsUseCase` implementa el patrón cache-aside a través del puerto `ICacheProvider`:
+
+- **Primera petición:** consulta la fuente lenta (simulación de ~2 s), almacena el resultado en `IMemoryCache` con TTL de 60 minutos.
+- **Peticiones siguientes:** devuelve el resultado en caché en menos de 50 ms.
+- **Metadata:** cada respuesta incluye `source` (`cache` o `slow-source`), `durationMs` y `cacheKey` para que el frontend pueda mostrar el estado al agente.
+- **Evolución futura:** el `ICacheProvider` permite cambiar a Redis sin tocar la capa de Application.
+
+### Solución B — Concurrencia optimista con campo `version`
+
+Cada pedido tiene un campo `version` entero que se incrementa con cada actualización exitosa:
+
+- El frontend envía la versión que tiene en pantalla junto con cada `PUT /orders/{id}`.
+- El backend compara la versión enviada con la almacenada. Si coinciden, aplica el cambio e incrementa la versión. Si no coinciden, devuelve `409 Conflict` con el código `ORDER_CONCURRENCY_CONFLICT` y un snapshot del pedido actual.
+- El frontend muestra el `ConflictDialogComponent` con una tabla comparativa campo a campo. El agente puede elegir recargar el pedido actual o copiar su comentario intentado para aplicarlo manualmente. No hay merge automático.
+
+---
+
+## 3. Stack y arquitectura
+
+**Backend**
+- ASP.NET Core 8 Web API
+- Clean Architecture (Api / Application / Domain / Infrastructure)
+- EF Core InMemory (PoC) — reemplazable por SQLite o SQL Server
+- IMemoryCache con abstracción `ICacheProvider` — reemplazable por Redis
+- xUnit
+
+**Frontend**
+- Angular 18+ con standalone components
+- Angular Signals para estado local de la feature
+- Reactive Forms con validación
+- Arquitectura por features bajo `features/orders`
+
+**Infraestructura**
+- Docker + docker-compose
+- nginx sirviendo el build de producción de Angular
+- Proxy `/api/` en nginx para comunicación interna entre contenedores
+
+Los diagramas de arquitectura, flujo de concurrencia y estrategia de caché están disponibles en la carpeta `docs/`.
+
+---
+
+## 4. Ejecución rápida con Docker
+
+### Prerequisitos
+
+- Docker Desktop instalado y corriendo
+- Puertos 5000 y 4200 disponibles
+
+### Comandos
+
+```bash
+# Clonar el repositorio
+git clone <URL_DEL_REPOSITORIO>
+cd omnierp-orders-poc
+
+# Construir y levantar todos los servicios
+docker-compose up --build
+
+# En segundo plano
+docker-compose up --build -d
 ```
 
-Local URLs:
+El frontend espera a que el backend supere el health check antes de iniciar.
 
-- API base URL: `http://localhost:5000`
-- Swagger UI: `http://localhost:5000/swagger`
+### URLs
 
-## Run The Frontend
+| Servicio | URL |
+|----------|-----|
+| Frontend | http://localhost:4200 |
+| Pedido de prueba | http://localhost:4200/orders/1001 |
+| Backend API | http://localhost:5000 |
+| Swagger UI | http://localhost:5000/swagger |
+| Health check | http://localhost:5000/api/v1/health |
 
-```powershell
+### Detener servicios
+
+```bash
+docker-compose down
+```
+
+---
+
+## 5. Ejecución local sin Docker
+
+### Prerequisitos
+
+- .NET 8 SDK
+- Node.js 18+ y npm
+- Angular CLI 18+ (`npm install -g @angular/cli`)
+
+### Backend
+
+```bash
+cd backend
+dotnet restore OmniERP.sln
+dotnet run --project src/OmniERP.Api
+```
+
+La API queda disponible en `http://localhost:5000`. Swagger en `http://localhost:5000/swagger`.
+
+### Frontend
+
+```bash
 cd frontend
 npm install
 npm start
 ```
 
-Local URLs:
+La aplicación queda disponible en `http://localhost:4200`.
 
-- Frontend: `http://localhost:4200`
-- Order edit route: `http://localhost:4200/orders/1001`
+---
 
-## REST Endpoints
+## 6. Endpoints disponibles
 
-- `GET /api/v1/health`
-- `GET /api/v1/orders/{id}`
-- `PUT /api/v1/orders/{id}`
-- `GET /api/v1/catalogs/order-form`
-- `POST /api/v1/catalogs/cache/invalidate`
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/api/v1/health` | Health check |
+| GET | `/api/v1/orders/{id}` | Obtener pedido por ID |
+| PUT | `/api/v1/orders/{id}` | Actualizar pedido con control de concurrencia |
+| GET | `/api/v1/catalogs/order-form` | Catálogos con metadata de caché |
+| POST | `/api/v1/catalogs/cache/invalidate` | Invalidar caché de catálogos |
 
-## Manual Validation
+Ver ejemplos completos con cuerpos de petición en `docs/api.http`.
 
-- Demo order: `GET http://localhost:5000/api/v1/orders/1001`
-- First catalog call: `GET http://localhost:5000/api/v1/catalogs/order-form` returns metadata source `slow-source`.
-- Second catalog call returns metadata source `cache`.
-- Cache reset: `POST http://localhost:5000/api/v1/catalogs/cache/invalidate`.
-- Concurrency conflict: send `PUT /api/v1/orders/1001` twice with the same stale `version`; the second request returns `409 Conflict`.
+---
 
-Manual request samples are available in `docs/api.http`.
+## 7. Validación manual — Problema A (caché)
 
-Frontend validation flow:
+1. Abre `http://localhost:4200/orders/1001`.
+2. Observa el badge de catálogos: **"Catálogos desde fuente lenta simulada"** — primera carga ~2 s.
+3. Recarga la página (F5).
+4. Observa el badge: **"Catálogos desde caché ✓"** — carga en menos de 50 ms.
+5. Para resetear la caché y repetir la demostración:
 
-1. Start the backend API.
-2. Open `http://localhost:4200/orders/1001`.
-3. Verify the order and catalogs load.
-4. Save a valid order change.
-5. Simulate a stale update from another client and verify the UI shows the `409` conflict feedback without merging automatically.
+```bash
+curl -X POST http://localhost:5000/api/v1/catalogs/cache/invalidate
+```
 
-## Test
+---
 
-```powershell
-dotnet test backend/OmniERP.sln
+## 8. Validación manual — Problema B (concurrencia)
+
+1. Abre `http://localhost:4200/orders/1001` en **dos pestañas** del navegador.
+2. **Pestaña A**: modifica la dirección de entrega → Guardar.
+3. **Pestaña B**: (sin recargar) modifica el comentario interno → Guardar.
+4. **Resultado esperado en Pestaña B**: aparece el **ConflictDialog** con:
+   - Título "⚠️ Conflicto de actualización detectado"
+   - Tabla comparativa campo a campo con la fila "Dirección de entrega" marcada como **Diferente**
+   - Tres opciones: Recargar pedido actual / Copiar comentario intentado / Cerrar
+5. Verifica en Swagger (`GET /api/v1/orders/1001`) que la dirección de la Pestaña A **no fue sobrescrita**.
+
+---
+
+## 9. Pruebas automatizadas
+
+### Backend
+
+```bash
+cd backend
+dotnet test OmniERP.sln
+```
+
+Resultado esperado: **28 pruebas — 28 passed**
+
+| Proyecto | Pruebas |
+|----------|---------|
+| OmniERP.Application.Tests | 14 |
+| OmniERP.Infrastructure.Tests | 7 |
+| OmniERP.Api.Tests | 7 |
+
+### Frontend
+
+```bash
 cd frontend
 npm test -- --watch=false
 ```
 
-## Next Build Steps
+Resultado esperado: **16 pruebas — 16 SUCCESS**
 
-1. Reinforce advanced conflict comparison UX.
-2. Add end-to-end validation for cache and optimistic concurrency.
-3. Add final README walkthrough and screenshots.
+---
+
+## 10. Estructura del repositorio
+
+```text
+omnierp-orders-poc/
+|
++-- backend/
+|   +-- src/
+|   |   +-- OmniERP.Api/
+|   |   |   +-- Controllers/
+|   |   |   +-- Middlewares/
+|   |   |   +-- Extensions/
+|   |   |   +-- Program.cs
+|   |   |   +-- appsettings.json
+|   |   |
+|   |   +-- OmniERP.Application/
+|   |   |   +-- Orders/
+|   |   |   |   +-- Commands/
+|   |   |   |   +-- Queries/
+|   |   |   |   +-- Dtos/
+|   |   |   |   +-- UseCases/
+|   |   |   +-- Catalogs/
+|   |   |   |   +-- Dtos/
+|   |   |   |   +-- UseCases/
+|   |   |   +-- Common/
+|   |   |   +-- Ports/
+|   |   |
+|   |   +-- OmniERP.Domain/
+|   |   |   +-- Orders/
+|   |   |   |   +-- Order.cs
+|   |   |   |   +-- OrderItem.cs
+|   |   |   |   +-- OrderConflictException.cs
+|   |   |   +-- Catalogs/
+|   |   |   +-- Common/
+|   |   |
+|   |   +-- OmniERP.Infrastructure/
+|   |       +-- Persistence/
+|   |       +-- Repositories/
+|   |       +-- Cache/
+|   |       +-- Seed/
+|   |       +-- Simulators/
+|   |
+|   +-- tests/
+|   |   +-- OmniERP.Application.Tests/
+|   |   +-- OmniERP.Infrastructure.Tests/
+|   |   +-- OmniERP.Api.Tests/
+|   |
+|   +-- OmniERP.sln
+|   +-- Dockerfile
+|
++-- frontend/
+|   +-- src/
+|   |   +-- app/
+|   |   |   +-- features/
+|   |   |   |   +-- orders/
+|   |   |   |       +-- pages/
+|   |   |   |       +-- components/
+|   |   |   |       +-- services/
+|   |   |   |       +-- models/
+|   |   |   |       +-- state/
+|   |   |   |       +-- testing/
+|   |   |   +-- app.routes.ts
+|   |   +-- environments/
+|   |   +-- styles.scss
+|   |
+|   +-- angular.json
+|   +-- package.json
+|   +-- Dockerfile
+|   +-- nginx.conf
+|
++-- docs/
+|   +-- architecture.mmd
+|   +-- concurrency-flow.mmd
+|   +-- cache-strategy.mmd
+|   +-- api.http
+|
++-- DECISIONS.md
++-- README.md
++-- AGENTS.md
++-- docker-compose.yml
++-- .gitignore
+```
+
+---
+
+## 11. Decisiones técnicas
+
+Ver [DECISIONS.md](./DECISIONS.md) para el análisis completo de:
+
+- **Problema A:** Estrategia de caché con `ICacheProvider` y `IMemoryCache`
+- **Problema B:** Control de concurrencia optimista con campo `version`
+- **UX del conflicto:** Por qué no hay merge automático en el frontend
+- **Arquitectura:** Clean Architecture, separación de capas, PoC vs. producción
+
+---
+
+## Diagramas
+
+Los diagramas Mermaid están disponibles en `docs/`:
+
+| Archivo | Descripción |
+|---------|-------------|
+| `architecture.mmd` | Arquitectura general — dependencias entre capas (frontend, API, Application, Domain, Infrastructure) |
+| `concurrency-flow.mmd` | Flujo secuencial del conflicto de concurrencia entre dos agentes |
+| `cache-strategy.mmd` | Estrategia cache-aside: miss, hit, invalidación |

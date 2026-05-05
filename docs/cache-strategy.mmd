@@ -1,28 +1,24 @@
-sequenceDiagram
-    autonumber
-    participant FE as Angular Order Edit UI
-    participant API as Catalogs API
-    participant UC as GetOrderFormCatalogsUseCase
-    participant Cache as ICacheProvider
-    participant Slow as SlowCatalogSource
+flowchart TD
+    Request["GET /api/v1/catalogs/order-form"]
+    CacheCheck{"¿Existe en IMemoryCache?\nkey: order-form-catalogs:v1"}
+    CacheHit["Retornar desde caché\nsource: cache\ndurationMs &lt; 50ms"]
+    SlowSource["Consultar fuente lenta\nSimulación: delay ~2000ms\n(SlowCatalogSource)"]
+    StoreCache["Guardar en IMemoryCache\nExpiry: 60 minutos"]
+    Response["Response con metadata\n{ source, durationMs, cacheKey }"]
 
-    FE->>API: GET /api/v1/catalogs/order-form
-    API->>UC: Request order form catalogs
-    UC->>Cache: Get key order-form-catalogs:v1
+    Invalidate["POST /api/v1/catalogs/cache/invalidate"]
+    InvalidateAction["Eliminar entrada del caché"]
 
-    alt Cache miss
-        Cache-->>UC: No value
-        UC->>Slow: Load order statuses and shipping methods
-        Note over Slow: Simulated delay around 2 seconds
-        Slow-->>UC: Catalog payload
-        UC->>Cache: Set key with TTL
-        UC-->>API: Catalogs with source slow-source
-        API-->>FE: 200 OK, duration around 2000 ms
-    else Cache hit
-        Cache-->>UC: Cached catalog payload
-        UC-->>API: Catalogs with source cache
-        API-->>FE: 200 OK, duration under 50 ms
-    end
+    Request --> CacheCheck
+    CacheCheck -->|"Sí (cache hit)"| CacheHit
+    CacheCheck -->|"No (cache miss)"| SlowSource
+    SlowSource --> StoreCache
+    StoreCache --> Response
+    CacheHit --> Response
 
-    Note over Cache: PoC adapter uses IMemoryCache
-    Note over Cache: Future production adapter can use Redis through the same port
+    Invalidate --> InvalidateAction
+    InvalidateAction -->|"Próxima petición vuelve al camino lento"| CacheCheck
+
+    style CacheHit fill:#02FB90,color:#050505
+    style SlowSource fill:#e5e9ee,color:#16171a
+    style Invalidate fill:#9E2182,color:#ffffff
