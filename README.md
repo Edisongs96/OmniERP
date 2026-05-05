@@ -16,7 +16,9 @@ The project is intentionally scoped to two production-style concerns:
 
 ## Current State
 
-This repository currently contains the base monorepo structure only. Business logic, domain model, API endpoints, persistence, cache implementation, and UI workflows will be added in later steps.
+This repository currently contains the base monorepo structure, domain model, Application DTOs, Application ports, and Application use cases for order lookup, safe order update, and order form catalog retrieval through cache-aside.
+
+Infrastructure adapters, API endpoints, persistence, concrete cache implementation, and UI workflows will be added in later steps.
 
 ## Main Folders
 
@@ -26,9 +28,7 @@ This repository currently contains the base monorepo structure only. Business lo
 
 ## Next Build Steps
 
-1. Define backend application ports and DTOs for Orders and Catalogs.
-2. Add domain model and optimistic concurrency rules.
-3. Implement infrastructure adapters for persistence and cache.
-4. Expose API endpoints.
-5. Build the Angular order edit feature.
-6. Add tests for cache behavior, concurrency conflicts, and API mappings.
+1. Implement infrastructure adapters for persistence, repositories, cache, seed data, and catalog simulation.
+2. Expose API endpoints and middleware mappings.
+3. Build the Angular order edit feature.
+4. Add integration tests for API behavior and infrastructure cache behavior.
