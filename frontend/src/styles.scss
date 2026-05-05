@@ -2,9 +2,26 @@
   box-sizing: border-box;
 }
 
+/* === Corporate Palette === */
+:root {
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #e5e9ee;
+  --color-green-ai: #02FB90;
+  --color-green-corporate: #0EA151;
+  --color-green-hover: #21CB5C;
+  --color-magenta-accent: #9E2182;
+  --color-magenta-soft: #C0268A;
+  --color-text-primary: #050505;
+  --color-text-secondary: #16171a;
+  --color-border-soft: rgba(2, 251, 144, 0.22);
+  --shadow-green: rgba(2, 251, 144, 0.18);
+  --shadow-dark: rgba(0, 0, 0, 0.35);
+}
+
+/* === Base === */
 body {
-  background: #f1f5f9;
-  color: #0f172a;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
   font-family: Arial, Helvetica, sans-serif;
   margin: 0;
 }
@@ -14,4 +31,73 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+/* === Cards === */
+.card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-soft);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px var(--shadow-green);
+  padding: 1.5rem;
+}
+
+/* === Buttons === */
+.btn-primary {
+  background: var(--color-green-corporate);
+  border: none;
+  border-radius: 6px;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0.6rem 1.4rem;
+
+  &:hover {
+    background: var(--color-green-hover);
+  }
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--color-green-corporate);
+  border-radius: 6px;
+  color: var(--color-green-corporate);
+  cursor: pointer;
+  padding: 0.6rem 1.4rem;
+
+  &:hover {
+    background: rgba(14, 161, 81, 0.08);
+  }
+}
+
+/* === Badges === */
+.badge {
+  border-radius: 12px;
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.7rem;
+}
+
+.badge-cache {
+  background: var(--color-green-ai);
+  color: var(--color-text-primary);
+}
+
+.badge-slow {
+  background: #e5e9ee;
+  border: 1px solid #ccc;
+  color: var(--color-text-secondary);
+}
+
+.badge-conflict {
+  background: var(--color-magenta-accent);
+  color: #ffffff;
+}
+
+/* === Conflict highlight === */
+.conflict-highlight {
+  background: rgba(158, 33, 130, 0.08);
+  border-left: 3px solid var(--color-magenta-accent);
+  padding-left: 0.5rem;
 }

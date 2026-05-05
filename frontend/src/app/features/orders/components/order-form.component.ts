@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { Component, computed, effect, inject, input, output } from '@angular/core';
 import {
   NonNullableFormBuilder,
@@ -12,7 +12,7 @@ import { UpdateOrderRequest } from '../models/update-order-request.model';
 @Component({
   selector: 'app-order-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, DatePipe, ReactiveFormsModule],
   templateUrl: './order-form.component.html',
   styleUrl: './order-form.component.css',
 })

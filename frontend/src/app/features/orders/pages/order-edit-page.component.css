@@ -30,7 +30,6 @@
 }
 
 .order-badge,
-.metadata-panel,
 .content-card,
 .info-message,
 .success-message,
@@ -59,17 +58,6 @@
   margin: 0;
 }
 
-.metadata-panel {
-  align-items: center;
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
-  color: #334155;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  padding: 0.8rem 1rem;
-}
-
 .info-message {
   background: #eff6ff;
   color: #1d4ed8;
@@ -86,6 +74,59 @@
   background: #fef2f2;
   color: #b91c1c;
   padding: 0.8rem 1rem;
+}
+
+/* Catalog metadata */
+.catalog-meta-block {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.meta-duration {
+  color: var(--color-text-secondary, #16171a);
+  font-size: 0.8rem;
+}
+
+.meta-key {
+  color: var(--color-text-secondary, #16171a);
+  font-family: monospace;
+  font-size: 0.75rem;
+}
+
+/* Clipboard toast */
+.clipboard-toast {
+  bottom: 1.5rem;
+  position: fixed;
+  right: 1.5rem;
+  z-index: 1000;
+  padding: 0.5rem 1rem;
+}
+
+/* Guide section */
+.guide-section {
+  border-left: 4px solid var(--color-green-corporate, #0EA151);
+  border-radius: 4px;
+  margin-top: 0.5rem;
+  padding: 1.2rem;
+  background: var(--color-bg-secondary, #e5e9ee);
+}
+
+.guide-content {
+  margin-top: 1rem;
+}
+
+.guide-content h3 {
+  font-size: 1rem;
+  margin: 0 0 0.75rem;
+}
+
+.guide-step {
+  font-size: 0.9rem;
+  margin: 0.4rem 0;
+  padding-left: 0.5rem;
 }
 
 @media (max-width: 720px) {

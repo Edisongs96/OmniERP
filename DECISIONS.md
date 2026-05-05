@@ -119,3 +119,34 @@ Reason:
 - A stale order version is a business conflict, not an unexpected server failure.
 - `UpdateOrderUseCase` returns conflict data and the API maps it to `409 Conflict`.
 - Unexpected failures are handled by a small global exception middleware returning a clean `500` response.
+
+## UX del conflicto de concurrencia
+
+### Decisión adoptada
+
+La interfaz de usuario no realiza merge automático de los cambios en conflicto.
+
+### Justificación
+
+- El backend es la autoridad de integridad del pedido.
+- Un merge automático en el frontend podría introducir datos incoherentes
+  sin supervisión humana.
+- En un entorno empresarial crítico, la decisión sobre qué dato prevalece
+  debe tomarse por un usuario, no por el sistema.
+
+### Comportamiento implementado
+
+- Al recibir error 409 ORDER_CONCURRENCY_CONFLICT, el frontend muestra el
+  ConflictDialogComponent con la comparación campo a campo.
+- Los cambios intentados se conservan en `lastAttemptedChanges` del store.
+- El usuario puede elegir: recargar el pedido actual o copiar su comentario
+  intentado para aplicarlo manualmente después de recargar.
+- El formulario no se limpia automáticamente.
+
+### Trade-offs aceptados
+
+- El flujo requiere una acción manual del usuario, lo que puede percibirse
+  como fricción. Sin embargo, esta fricción es intencional para evitar
+  pérdida silenciosa de datos.
+- En un sistema de mayor escala, podría evaluarse un merge asistido con
+  revisión explícita de cada campo en conflicto.

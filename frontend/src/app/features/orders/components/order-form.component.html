@@ -1,3 +1,10 @@
+<div class="order-info-block card">
+  <strong>Pedido #{{ order().id }}</strong>
+  <span>Versión cargada: {{ order().version }}</span>
+  <span>Última actualización: {{ order().updatedAt | date:'medium' }}</span>
+  <span>Actualizado por: {{ order().updatedBy }}</span>
+</div>
+
 <form class="order-form" [formGroup]="form" (ngSubmit)="submit()">
   <div class="form-grid">
     <label>

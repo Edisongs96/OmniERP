@@ -27,20 +27,31 @@
     <p class="error-message">{{ error }}</p>
   }
 
-  @if (store.catalogs(); as catalogs) {
-    <section class="metadata-panel">
-      <strong>Catalogos cargados desde: {{ catalogs.metadata.source }}</strong>
-      <span>Duracion: {{ catalogs.metadata.durationMs }} ms</span>
-      <span>Cache key: {{ catalogs.metadata.cacheKey }}</span>
-    </section>
+  @if (store.catalogMetadata(); as meta) {
+    <div class="catalog-meta-block">
+      <span
+        class="badge"
+        [class.badge-cache]="meta.source === 'cache'"
+        [class.badge-slow]="meta.source !== 'cache'">
+        {{ meta.source === 'cache' ? 'Catálogos desde caché ✓' : 'Catálogos desde fuente lenta simulada' }}
+      </span>
+      <span class="meta-duration">Respondió en {{ meta.durationMs }}ms</span>
+      <span class="meta-key">Key: {{ meta.cacheKey }}</span>
+    </div>
   }
 
   @if (store.conflict(); as conflict) {
     <app-conflict-dialog
-      [conflict]="conflict"
-      (reload)="onReloadCurrentOrder()"
+      [currentOrder]="conflict.currentOrder"
+      [attemptedChanges]="conflict.attemptedChanges"
+      (reload)="store.reloadCurrentOrder()"
       (close)="store.clearConflict()"
+      (copyAttemptedComment)="store.copyAttemptedCommentToClipboard()"
     />
+  }
+
+  @if (store.clipboardMessage(); as msg) {
+    <div class="clipboard-toast badge badge-cache">{{ msg }}</div>
   }
 
   @if (store.order(); as order) {
@@ -59,4 +70,22 @@
       <app-order-items-table [items]="order.items" />
     </section>
   }
+
+  <section id="guide-section" class="guide-section">
+    <button type="button" class="btn-secondary" (click)="toggleGuide()">
+      {{ guideVisible() ? 'Ocultar guía de prueba' : 'Mostrar guía de prueba' }}
+    </button>
+
+    @if (guideVisible()) {
+      <div class="guide-content">
+        <h3>Cómo probar conflicto de concurrencia</h3>
+        <p class="guide-step">Paso 1: Abre http://localhost:4200/orders/1001 en dos pestañas del navegador.</p>
+        <p class="guide-step">Paso 2: En la Pestaña A, modifica la dirección de entrega y haz clic en Guardar.</p>
+        <p class="guide-step">Paso 3: En la Pestaña B (sin recargar), modifica el comentario interno y haz clic en Guardar.</p>
+        <p class="guide-step">Paso 4: La Pestaña B debe mostrar el conflicto 409 con el diálogo de comparación.</p>
+        <p class="guide-step">Paso 5: Verifica que la dirección guardada por la Pestaña A NO fue sobrescrita.</p>
+        <p>Este escenario demuestra la protección de integridad por concurrencia optimista.</p>
+      </div>
+    }
+  </section>
 </main>

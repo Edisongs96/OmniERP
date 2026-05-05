@@ -1,90 +1,82 @@
-.conflict-panel {
-  background: #fff7ed;
-  border: 1px solid #fed7aa;
+.conflict-dialog-overlay {
+  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  position: fixed;
+  z-index: 900;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 1rem;
+  overflow-y: auto;
+}
+
+.conflict-dialog-panel {
+  background: #ffffff;
   border-radius: 8px;
-  display: grid;
-  gap: 1rem;
-  padding: 1rem;
+  border-top: 4px solid var(--color-magenta-accent, #9E2182);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  max-width: 680px;
+  padding: 2rem;
+  width: 100%;
 }
 
-.conflict-header {
-  align-items: start;
-  display: flex;
-  gap: 1rem;
-  justify-content: space-between;
-}
-
-h2,
-h3,
-p {
-  margin: 0;
-}
-
-h2 {
-  color: #9a3412;
-  font-size: 1.1rem;
-}
-
-.conflict-header span {
-  background: #ffedd5;
-  border-radius: 999px;
-  color: #9a3412;
-  font-size: 0.75rem;
+.conflict-dialog-title {
+  color: var(--color-magenta-accent, #9E2182);
+  font-size: 1.2rem;
   font-weight: 700;
-  padding: 0.35rem 0.55rem;
+  margin: 0 0 0.5rem;
 }
 
-.comparison-grid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.conflict-intro {
+  color: #4b5563;
+  font-size: 0.9rem;
+  margin: 0 0 1rem;
 }
 
-article {
-  background: #fff;
-  border: 1px solid #fed7aa;
+.conflict-meta {
+  background: rgba(158, 33, 130, 0.06);
   border-radius: 6px;
-  padding: 0.9rem;
-}
-
-dl {
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  padding: 0.8rem;
   display: grid;
-  gap: 0.35rem;
-  margin: 0.75rem 0 0;
+  gap: 0.25rem;
 }
 
-dt {
-  color: #64748b;
+.comparison-table {
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.comparison-table th {
+  background: var(--color-bg-secondary, #e5e9ee);
   font-size: 0.8rem;
-  font-weight: 700;
+  padding: 0.5rem;
+  text-align: left;
 }
 
-dd {
-  margin: 0 0 0.4rem;
+.comparison-table td {
+  border-bottom: 1px solid var(--color-border-soft, rgba(2, 251, 144, 0.22));
+  font-size: 0.85rem;
+  padding: 0.5rem;
+  vertical-align: top;
 }
 
-.actions {
+.actions-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
 }
 
-button {
-  background: #c2410c;
-  border: 0;
-  border-radius: 6px;
-  color: #fff;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 700;
-  padding: 0.65rem 0.9rem;
-}
+@media (max-width: 600px) {
+  .actions-row {
+    flex-direction: column;
+  }
 
-.secondary {
-  background: #475569;
-}
-
-@media (max-width: 760px) {
-  .comparison-grid {
-    grid-template-columns: 1fr;
+  .actions-row button {
+    width: 100%;
   }
 }

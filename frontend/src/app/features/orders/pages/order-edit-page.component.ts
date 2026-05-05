@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { ConflictDialogComponent } from '../components/conflict-dialog.component';
 import { OrderFormComponent } from '../components/order-form.component';
@@ -23,6 +23,8 @@ export class OrderEditPageComponent implements OnInit {
   protected readonly store = inject(OrderEditStore);
   private readonly route = inject(ActivatedRoute);
 
+  protected readonly guideVisible = signal(false);
+
   ngOnInit(): void {
     const routeId = Number(this.route.snapshot.paramMap.get('id'));
     const orderId = Number.isFinite(routeId) && routeId > 0 ? routeId : 1001;
@@ -38,5 +40,9 @@ export class OrderEditPageComponent implements OnInit {
   onReloadCurrentOrder(): void {
     this.store.clearConflict();
     this.store.reloadCurrentOrder();
+  }
+
+  toggleGuide(): void {
+    this.guideVisible.update((v) => !v);
   }
 }

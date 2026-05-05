@@ -8,7 +8,7 @@ import {
   ORDER_CONCURRENCY_CONFLICT,
   OrderConflictResponse,
 } from '../models/order-conflict.model';
-import { OrderFormCatalogs } from '../models/order-form-catalogs.model';
+import { CatalogMetadata, OrderFormCatalogs } from '../models/order-form-catalogs.model';
 import { Order } from '../models/order.model';
 import { UpdateOrderRequest } from '../models/update-order-request.model';
 
@@ -51,6 +51,10 @@ export class OrderEditStore {
   readonly error = computed(() => this.state().error);
   readonly successMessage = computed(() => this.state().successMessage);
   readonly conflict = computed(() => this.state().conflict);
+  readonly catalogMetadata = computed(() => this.state().catalogs?.metadata ?? null);
+
+  readonly lastAttemptedChanges = signal<UpdateOrderRequest | null>(null);
+  readonly clipboardMessage = signal<string | null>(null);
 
   loadOrder(id: number): void {
     if (id <= 0) {
@@ -103,6 +107,8 @@ export class OrderEditStore {
       return;
     }
 
+    this.lastAttemptedChanges.set(request);
+
     this.patch({
       saving: true,
       error: null,
@@ -133,6 +139,8 @@ export class OrderEditStore {
 
   clearConflict(): void {
     this.patch({ conflict: null });
+    this.lastAttemptedChanges.set(null);
+    this.clipboardMessage.set(null);
   }
 
   reloadCurrentOrder(): void {
@@ -141,6 +149,23 @@ export class OrderEditStore {
     if (id) {
       this.loadOrder(id);
     }
+  }
+
+  async copyAttemptedCommentToClipboard(): Promise<void> {
+    const comment = this.lastAttemptedChanges()?.internalComment;
+
+    if (!comment) {
+      return;
+    }
+
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(comment);
+      this.clipboardMessage.set('Comentario copiado al portapapeles ✓');
+    } else {
+      this.clipboardMessage.set('Copia manual: ' + comment);
+    }
+
+    setTimeout(() => this.clipboardMessage.set(null), 4000);
   }
 
   private handleSaveError(
