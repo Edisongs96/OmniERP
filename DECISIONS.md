@@ -38,28 +38,78 @@ Implementation note:
 - The UI shows functional feedback for `409 Conflict` responses.
 - The UI does not apply automatic merges when a stale version is rejected.
 
-## 5. Cache Strategy
+## 5. Cache Strategy — Problema A
 
-Decision: use cache-aside through an `ICacheProvider` abstraction.
+### Decisión
 
-PoC adapter: `IMemoryCache`.
+Usar el patrón Cache-Aside a través de la abstracción `ICacheProvider`.
 
-Future production option: Redis adapter through the same application port.
+Adaptador PoC: `IMemoryCache`.
+Adaptador de producción futura: Redis a través del mismo puerto.
 
-## 6. Concurrency Strategy
+### Por qué Cache-Aside y no otras estrategias
 
-Decision: use optimistic concurrency with an order version value.
+**Cache-Aside vs. Read-Through/Write-Through:**
+Read-Through delega la carga al proveedor de caché, acoplando la política de caché a la infraestructura. Cache-Aside mantiene la política de caché en el caso de uso (`GetOrderCatalogsUseCase`), lo que permite cambiar el proveedor sin modificar la lógica de negocio. La capa Application controla cuándo cachear, por cuánto tiempo y con qué clave.
 
-Expected behavior:
+**Cache-Aside vs. sin caché:**
+Sin caché, cada apertura del formulario dispara lecturas idénticas a la fuente lenta (~2 s). Con volumen concurrente, esto satura la red y la base de datos con datos que no cambian. Cache-Aside elimina ese costo en todas las lecturas posteriores a la primera dentro del TTL.
 
-- Matching version: update succeeds and increments version.
-- Stale version: update is rejected with HTTP 409 Conflict.
+**Cache-Aside vs. caché en el repositorio:**
+Cachear en el repositorio viola la Dependency Inversion — Infrastructure sabría cuándo cachear, una decisión que pertenece a Application. Cache-Aside en el caso de uso mantiene la responsabilidad en la capa correcta.
 
-Application note:
+### Cómo se mantiene actualizado en producción
 
-- `UpdateOrderUseCase` orchestrates repository loading and saving.
-- The version comparison and mutation rule live in `Order.Update(...)` in the Domain layer.
-- On conflict, Application returns an `UpdateOrderResult` with `ORDER_CONCURRENCY_CONFLICT` data and does not save.
+1. **TTL explícito:** `CacheDurations.OrderFormCatalogsTtl` controla la vida de la entrada. Si los catálogos cambian raramente, un TTL de 24 horas con invalidación explícita es suficiente.
+2. **Invalidación activa:** `POST /api/v1/catalogs/cache/invalidate` permite que el proceso administrativo invalide la caché al modificar catálogos sin esperar al TTL.
+3. **Actualización automática:** al expirar el TTL, el siguiente request recarga desde la fuente y repuebla la caché.
+
+### Cómo escalaría en producción real
+
+Con múltiples instancias del backend (horizontal scaling), `IMemoryCache` es local a cada nodo — cada instancia tiene su propia caché, potencialmente desincronizada. La solución ya está contemplada: registrar `RedisCache` (que implemente `ICacheProvider`) en lugar de `MemoryCacheProvider`. Redis centraliza la caché para todos los nodos. La capa Application no cambia en absoluto: ningún caso de uso ni ningún test de Application necesita modificarse.
+
+## 6. Concurrency Strategy — Problema B
+
+### Decisión
+
+Usar concurrencia optimista con campo `version` entero en la entidad `Order`.
+
+Comportamiento:
+
+- Versión coincide: el update se aplica y el campo `version` se incrementa en 1.
+- Versión obsoleta: el update se rechaza con HTTP `409 Conflict` y código `ORDER_CONCURRENCY_CONFLICT`.
+
+Implementación: la comparación y mutación de versión viven en `Order.Update(...)` en el Domain. `UpdateOrderUseCase` orquesta la carga y el guardado. Ante conflicto, devuelve `UpdateOrderResult.ConflictResult` sin persistir nada.
+
+### Por qué optimista y NO pesimista (locks de base de datos)
+
+La concurrencia pesimista bloquea el registro con un lock exclusivo mientras el agente lo edita. En un sistema web con múltiples agentes concurrentes esto genera:
+
+- Colas de espera: si un agente abre el pedido y lo deja sin guardar, el lock bloquea a todos los demás indefinidamente hasta que expire el timeout.
+- Riesgo de deadlocks con tablas relacionadas.
+- Experiencia de usuario degradada: el sistema aparece lento o bloqueado sin causa aparente.
+
+La concurrencia optimista no bloquea nada. El conflicto es la excepción — en la mayoría de los casos los agentes trabajan en pedidos distintos y nunca hay colisión. Pagar el costo de locking para el caso excepcional no es justificable.
+
+### Por qué optimista y NO "last write wins" (sin protección)
+
+Last-write-wins es exactamente el problema que se reportó en producción: el Agente 2 sobrescribe silenciosamente los cambios del Agente 1 sin ningún aviso. En un pedido con dirección de entrega crítica, eso significa un paquete enviado al destino incorrecto. No hay mecanismo de detección ni notificación. No es una opción aceptable.
+
+### Por qué optimista y NO Event Sourcing
+
+Event Sourcing resuelve la concurrencia almacenando todos los eventos de cambio en lugar del estado actual, permitiendo reconstruir el historial completo. Es la solución más poderosa pero también la más compleja:
+
+- Requiere una arquitectura completamente diferente (event store, proyecciones, handlers).
+- Incrementa la complejidad operacional significativamente.
+- No es proporcional al alcance de esta PoC, que demuestra un problema de concurrencia puntual.
+
+La concurrencia optimista con versión resuelve el problema con complejidad mínima y es defendible en producción para este caso de uso.
+
+### Limitaciones del enfoque (honestidad técnica)
+
+- **Conflictos de campos independientes:** si el Agente 1 cambia la dirección y el Agente 2 cambia solo el comentario, el sistema reporta conflicto aunque semánticamente no hay colisión. El usuario debe recargar y re-aplicar su cambio. Esta fricción es intencional — es preferible a permitir un merge automático sin supervisión.
+- **No hay historial de versiones:** el sistema solo sabe la versión actual. Para auditoría completa se necesitaría un audit log separado.
+- **EF Core InMemory:** en la PoC el check de versión ocurre en la capa Domain antes de persistir, no como `WHERE version=N` en SQL. Con una base de datos real, EF Core puede configurarse con `IsRowVersion()` o `IsConcurrencyToken()` para que el check ocurra a nivel de SQL, añadiendo protección adicional contra race conditions extremos.
 
 ## 7. Application Cache-Aside Use Case
 
