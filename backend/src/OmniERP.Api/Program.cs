@@ -1,17 +1,33 @@
+using OmniERP.Api.Extensions;
+using OmniERP.Infrastructure.Seed;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
-builder.Services.AddControllers();
+builder.Services.AddApiServices();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+app.UseApiExceptionHandling();
 
-app.UseHttpsRedirection();
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
-app.UseAuthorization();
-
+app.UseFrontendCors();
 app.MapControllers();
 
-app.Run();
+await SeedDatabaseAsync(app);
+
+await app.RunAsync();
+
+static async Task SeedDatabaseAsync(WebApplication app)
+{
+    using var scope = app.Services.CreateScope();
+    var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
+
+    await seeder.SeedAsync();
+}
+
+public partial class Program;

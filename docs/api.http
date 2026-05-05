@@ -6,50 +6,47 @@
 ### =========================================================
 ### OmniERP Orders PoC - API Requests
 ### =========================================================
-### Objetivo:
-### Validar manualmente los endpoints principales de la PoC:
+### Manual validation targets:
 ### - Health check
-### - Catálogos con caché
-### - Consulta de pedido
-### - Actualización segura con concurrencia optimista
-### - Simulación de conflicto 409
+### - Catalog cache miss and hit
+### - Demo order lookup
+### - Safe optimistic-concurrency update
+### - 409 conflict simulation
 ### =========================================================
 
 
-### 1. Health Check
+### 1. Health check
 GET {{baseUrl}}/api/v1/health
 Accept: application/json
 
 
-### 2. Obtener catálogos del formulario - Primera petición
-### Esperado:
-### - source: slow-source
-### - durationMs aproximado: 2000 ms
+### 2. Get order form catalogs - first request
+### Expected:
+### - metadata.source: slow-source
 GET {{baseUrl}}/api/v1/catalogs/order-form
 Accept: application/json
 
 
-### 3. Obtener catálogos del formulario - Segunda petición
-### Esperado:
-### - source: cache
-### - durationMs menor a 50 ms
+### 3. Get order form catalogs - second request
+### Expected:
+### - metadata.source: cache
 GET {{baseUrl}}/api/v1/catalogs/order-form
 Accept: application/json
 
 
-### 4. Invalidar caché de catálogos
+### 4. Invalidate order form catalog cache
 POST {{baseUrl}}/api/v1/catalogs/cache/invalidate
 Accept: application/json
 
 
-### 5. Obtener pedido demo
+### 5. Get demo order
 GET {{baseUrl}}/api/v1/orders/{{orderId}}
 Accept: application/json
 
 
-### 6. Actualización exitosa del pedido
-### Requisito:
-### Usar la versión actual recibida en GET /orders/{id}
+### 6. Successful order update
+### Requirement:
+### Use the current version returned by GET /orders/{id}.
 PUT {{baseUrl}}/api/v1/orders/{{orderId}}
 Content-Type: application/json
 Accept: application/json
@@ -57,8 +54,8 @@ Accept: application/json
 {
   "customerName": "Cliente Demo",
   "customerEmail": "cliente.demo@omnierp.local",
-  "deliveryAddress": "Calle 10 # 20-30, Medellín",
-  "internalComment": "Actualización realizada correctamente desde api.http",
+  "deliveryAddress": "Calle 10 # 20-30, Medellin",
+  "internalComment": "Actualizacion realizada correctamente desde api.http",
   "statusId": 2,
   "shippingMethodId": 3,
   "version": 1,
@@ -67,28 +64,28 @@ Accept: application/json
 
 
 ### =========================================================
-### Simulación de conflicto de concurrencia
+### Concurrency conflict simulation
 ### =========================================================
-### Flujo esperado:
-### 1. Agente 1 y Agente 2 leen el pedido con la misma version.
-### 2. Agente 1 guarda primero y la version aumenta.
-### 3. Agente 2 intenta guardar usando la version antigua.
-### 4. Backend responde 409 Conflict y no sobrescribe datos.
+### Expected flow:
+### 1. Agent 1 and Agent 2 read the order with the same version.
+### 2. Agent 1 saves first and the version increases.
+### 3. Agent 2 tries to save using the old version.
+### 4. Backend returns 409 Conflict and does not overwrite data.
 ### =========================================================
 
 
-### 7. Agente 1 lee el pedido
+### 7. Agent 1 reads the order
 GET {{baseUrl}}/api/v1/orders/{{orderId}}
 Accept: application/json
 
 
-### 8. Agente 2 lee el mismo pedido
+### 8. Agent 2 reads the same order
 GET {{baseUrl}}/api/v1/orders/{{orderId}}
 Accept: application/json
 
 
-### 9. Agente 1 actualiza dirección
-### Ajustar el campo version con la versión actual recibida en el paso anterior.
+### 9. Agent 1 updates delivery address
+### Adjust version with the current version returned by the previous GET.
 PUT {{baseUrl}}/api/v1/orders/{{orderId}}
 Content-Type: application/json
 Accept: application/json
@@ -96,7 +93,7 @@ Accept: application/json
 {
   "customerName": "Cliente Demo",
   "customerEmail": "cliente.demo@omnierp.local",
-  "deliveryAddress": "Nueva dirección guardada por Agente 1",
+  "deliveryAddress": "Nueva direccion guardada por Agente 1",
   "internalComment": "Comentario anterior del pedido",
   "statusId": 2,
   "shippingMethodId": 2,
@@ -105,12 +102,12 @@ Accept: application/json
 }
 
 
-### 10. Agente 2 intenta guardar con versión antigua
-### Esperado:
+### 10. Agent 2 tries to save with stale version
+### Expected:
 ### - HTTP 409 Conflict
 ### - code: ORDER_CONCURRENCY_CONFLICT
-### - currentOrder con la versión actual
-### - attemptedChanges con los cambios intentados por Agente 2
+### - currentOrder with current version
+### - attemptedChanges with Agent 2 attempted changes
 PUT {{baseUrl}}/api/v1/orders/{{orderId}}
 Content-Type: application/json
 Accept: application/json
@@ -118,7 +115,7 @@ Accept: application/json
 {
   "customerName": "Cliente Demo",
   "customerEmail": "cliente.demo@omnierp.local",
-  "deliveryAddress": "Dirección antigua que tenía Agente 2 en pantalla",
+  "deliveryAddress": "Direccion antigua que tenia Agente 2 en pantalla",
   "internalComment": "Comentario interno agregado por Agente 2",
   "statusId": 2,
   "shippingMethodId": 2,
@@ -127,9 +124,9 @@ Accept: application/json
 }
 
 
-### 11. Consultar pedido final para verificar integridad
-### Esperado:
-### La dirección guardada por Agente 1 debe conservarse.
-### El comentario de Agente 2 no debe haberse aplicado automáticamente.
+### 11. Get final order and verify integrity
+### Expected:
+### Agent 1 delivery address remains.
+### Agent 2 stale comment was not applied automatically.
 GET {{baseUrl}}/api/v1/orders/{{orderId}}
 Accept: application/json

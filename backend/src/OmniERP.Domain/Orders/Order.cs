@@ -6,6 +6,17 @@ public sealed class Order : Entity
 {
     private readonly List<OrderItem> _items;
 
+    private Order()
+        : base(0)
+    {
+        CustomerName = string.Empty;
+        CustomerEmail = string.Empty;
+        DeliveryAddress = string.Empty;
+        InternalComment = string.Empty;
+        UpdatedBy = string.Empty;
+        _items = [];
+    }
+
     public Order(
         int id,
         string customerName,

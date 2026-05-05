@@ -48,9 +48,67 @@ Expected behavior:
 - Matching version: update succeeds and increments version.
 - Stale version: update is rejected with HTTP 409 Conflict.
 
-## 7. Open Decisions
+Application note:
 
-- EF Core InMemory vs SQLite for local persistence.
+- `UpdateOrderUseCase` orchestrates repository loading and saving.
+- The version comparison and mutation rule live in `Order.Update(...)` in the Domain layer.
+- On conflict, Application returns an `UpdateOrderResult` with `ORDER_CONCURRENCY_CONFLICT` data and does not save.
+
+## 7. Application Cache-Aside Use Case
+
+Decision: `GetOrderCatalogsUseCase` implements cache-aside through `ICacheProvider`.
+
+Expected behavior:
+
+- Read `CacheKeys.OrderFormCatalogs` first.
+- On cache hit, return cached catalogs with metadata source `cache`.
+- On cache miss, load catalogs through `ICatalogRepository`, store them with a 24 hour TTL, and return metadata source `slow-source`.
+- Application does not know `IMemoryCache`, Redis, EF Core, or infrastructure details.
+
+## 8. Open Decisions
+
 - Exact API response contract for concurrency conflicts.
-- Cache TTL value for order form catalogs.
+- Whether the 24 hour catalog cache TTL remains fixed or becomes runtime configuration.
 - Frontend conflict resolution UX details.
+
+## 9. Infrastructure Adapters
+
+Decision: use EF Core InMemory as the local persistence adapter for the PoC.
+
+Reason:
+
+- Keeps local execution lightweight.
+- Allows repository behavior and seed data to be tested without external services.
+- Can be replaced by SQLite or a production database without changing Application use cases.
+
+Decision: implement `ICacheProvider` with `IMemoryCache` for the PoC.
+
+Reason:
+
+- Demonstrates backend cache behavior with minimal operational overhead.
+- Keeps Redis as a future adapter behind the same Application port.
+
+Decision: catalog repositories delegate to `SlowCatalogSource`.
+
+Reason:
+
+- Keeps catalog latency simulation in Infrastructure.
+- Keeps cache policy in `GetOrderCatalogsUseCase`, not in repositories.
+
+## 10. REST API Layer
+
+Decision: keep API controllers thin.
+
+Reason:
+
+- Controllers validate HTTP input shape and delegate to Application use cases.
+- Application results are mapped to HTTP responses in the API layer.
+- Domain entities are not exposed directly as HTTP contracts.
+
+Decision: represent expected optimistic concurrency failures as HTTP `409 Conflict`.
+
+Reason:
+
+- A stale order version is a business conflict, not an unexpected server failure.
+- `UpdateOrderUseCase` returns conflict data and the API maps it to `409 Conflict`.
+- Unexpected failures are handled by a small global exception middleware returning a clean `500` response.
