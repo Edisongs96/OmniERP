@@ -1,0 +1,68 @@
+<form class="order-form" [formGroup]="form" (ngSubmit)="submit()">
+  <div class="form-grid">
+    <label>
+      Cliente
+      <input type="text" formControlName="customerName" />
+      @if (hasError('customerName', 'required')) {
+        <span class="field-error">El cliente es requerido.</span>
+      }
+    </label>
+
+    <label>
+      Email
+      <input type="email" formControlName="customerEmail" />
+      @if (hasError('customerEmail', 'required')) {
+        <span class="field-error">El email es requerido.</span>
+      }
+      @if (hasError('customerEmail', 'email')) {
+        <span class="field-error">Ingresa un email valido.</span>
+      }
+    </label>
+
+    <label class="span-2">
+      Direccion de entrega
+      <input type="text" formControlName="deliveryAddress" />
+      @if (hasError('deliveryAddress', 'required')) {
+        <span class="field-error">La direccion de entrega es requerida.</span>
+      }
+    </label>
+
+    <label>
+      Estado
+      <select formControlName="statusId">
+        <option [ngValue]="0">Seleccione un estado</option>
+        @for (status of orderStatuses(); track status.id) {
+          <option [ngValue]="status.id">{{ status.name }}</option>
+        }
+      </select>
+      @if (hasError('statusId', 'min')) {
+        <span class="field-error">Selecciona un estado.</span>
+      }
+    </label>
+
+    <label>
+      Metodo de envio
+      <select formControlName="shippingMethodId">
+        <option [ngValue]="0">Seleccione un metodo</option>
+        @for (method of shippingMethods(); track method.id) {
+          <option [ngValue]="method.id">{{ method.name }}</option>
+        }
+      </select>
+      @if (hasError('shippingMethodId', 'min')) {
+        <span class="field-error">Selecciona un metodo de envio.</span>
+      }
+    </label>
+
+    <label class="span-2">
+      Comentario interno
+      <textarea rows="4" formControlName="internalComment"></textarea>
+    </label>
+  </div>
+
+  <div class="form-footer">
+    <span>Version actual: {{ order().version }}</span>
+    <button type="submit" [disabled]="form.invalid || saving()">
+      {{ saving() ? 'Guardando...' : 'Guardar pedido' }}
+    </button>
+  </div>
+</form>

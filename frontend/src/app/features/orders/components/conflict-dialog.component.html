@@ -1,0 +1,46 @@
+<section class="conflict-panel" role="alert">
+  <div class="conflict-header">
+    <div>
+      <h2>Conflicto de concurrencia</h2>
+      <p>{{ conflict().message }}</p>
+    </div>
+    <span>{{ conflict().code }}</span>
+  </div>
+
+  <div class="comparison-grid">
+    <article>
+      <h3>Pedido actual</h3>
+      <dl>
+        <dt>Version</dt>
+        <dd>{{ conflict().currentOrder.version }}</dd>
+        <dt>Direccion</dt>
+        <dd>{{ conflict().currentOrder.deliveryAddress }}</dd>
+        <dt>Comentario</dt>
+        <dd>{{ conflict().currentOrder.internalComment || 'Sin comentario' }}</dd>
+        <dt>Actualizado por</dt>
+        <dd>{{ conflict().currentOrder.updatedBy }}</dd>
+        <dt>Actualizado en</dt>
+        <dd>{{ conflict().currentOrder.updatedAt | date: 'short' }}</dd>
+      </dl>
+    </article>
+
+    <article>
+      <h3>Cambios intentados</h3>
+      <dl>
+        <dt>Version enviada</dt>
+        <dd>{{ conflict().attemptedChanges.version }}</dd>
+        <dt>Direccion</dt>
+        <dd>{{ conflict().attemptedChanges.deliveryAddress }}</dd>
+        <dt>Comentario</dt>
+        <dd>{{ conflict().attemptedChanges.internalComment || 'Sin comentario' }}</dd>
+        <dt>Actualizado por</dt>
+        <dd>{{ conflict().attemptedChanges.updatedBy }}</dd>
+      </dl>
+    </article>
+  </div>
+
+  <div class="actions">
+    <button type="button" (click)="reload.emit()">Recargar pedido actual</button>
+    <button type="button" class="secondary" (click)="close.emit()">Cerrar</button>
+  </div>
+</section>

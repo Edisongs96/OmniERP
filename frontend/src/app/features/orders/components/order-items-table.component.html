@@ -1,0 +1,28 @@
+<div class="table-wrapper">
+  <table>
+    <thead>
+      <tr>
+        <th>SKU</th>
+        <th>Producto</th>
+        <th>Cantidad</th>
+        <th>Precio unitario</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of items(); track item.id) {
+        <tr>
+          <td>{{ item.productSku }}</td>
+          <td>{{ item.productName }}</td>
+          <td>{{ item.quantity }}</td>
+          <td>{{ item.unitPrice | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</td>
+          <td>{{ total(item) | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="5">Este pedido no tiene items.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

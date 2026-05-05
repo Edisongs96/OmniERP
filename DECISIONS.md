@@ -31,6 +31,13 @@ Reason:
 - Use Reactive Forms for edit workflows.
 - Use Signals for local loading, saving, error, and conflict state.
 
+Implementation note:
+
+- HTTP access is isolated in order and catalog API services.
+- The order edit page delegates local state to a Signals store.
+- The UI shows functional feedback for `409 Conflict` responses.
+- The UI does not apply automatic merges when a stale version is rejected.
+
 ## 5. Cache Strategy
 
 Decision: use cache-aside through an `ICacheProvider` abstraction.
