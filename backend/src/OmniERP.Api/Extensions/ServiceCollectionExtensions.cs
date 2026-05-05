@@ -26,7 +26,7 @@ public static class ServiceCollectionExtensions
         {
             options.AddPolicy(FrontendCorsPolicy, policy =>
             {
-                policy.WithOrigins("http://localhost:4200")
+                policy.SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost")
                     .AllowAnyHeader()
                     .AllowAnyMethod();
             });
