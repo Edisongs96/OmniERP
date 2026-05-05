@@ -48,26 +48,9 @@ Expected behavior:
 - Matching version: update succeeds and increments version.
 - Stale version: update is rejected with HTTP 409 Conflict.
 
-Application note:
-
-- `UpdateOrderUseCase` orchestrates repository loading and saving.
-- The version comparison and mutation rule live in `Order.Update(...)` in the Domain layer.
-- On conflict, Application returns an `UpdateOrderResult` with `ORDER_CONCURRENCY_CONFLICT` data and does not save.
-
-## 7. Application Cache-Aside Use Case
-
-Decision: `GetOrderCatalogsUseCase` implements cache-aside through `ICacheProvider`.
-
-Expected behavior:
-
-- Read `CacheKeys.OrderFormCatalogs` first.
-- On cache hit, return cached catalogs with metadata source `cache`.
-- On cache miss, load catalogs through `ICatalogRepository`, store them with a 24 hour TTL, and return metadata source `slow-source`.
-- Application does not know `IMemoryCache`, Redis, EF Core, or infrastructure details.
-
-## 8. Open Decisions
+## 7. Open Decisions
 
 - EF Core InMemory vs SQLite for local persistence.
 - Exact API response contract for concurrency conflicts.
-- Whether the 24 hour catalog cache TTL remains fixed or becomes runtime configuration.
+- Cache TTL value for order form catalogs.
 - Frontend conflict resolution UX details.
