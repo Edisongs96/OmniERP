@@ -94,3 +94,21 @@ Reason:
 
 - Keeps catalog latency simulation in Infrastructure.
 - Keeps cache policy in `GetOrderCatalogsUseCase`, not in repositories.
+
+## 10. REST API Layer
+
+Decision: keep API controllers thin.
+
+Reason:
+
+- Controllers validate HTTP input shape and delegate to Application use cases.
+- Application results are mapped to HTTP responses in the API layer.
+- Domain entities are not exposed directly as HTTP contracts.
+
+Decision: represent expected optimistic concurrency failures as HTTP `409 Conflict`.
+
+Reason:
+
+- A stale order version is a business conflict, not an unexpected server failure.
+- `UpdateOrderUseCase` returns conflict data and the API maps it to `409 Conflict`.
+- Unexpected failures are handled by a small global exception middleware returning a clean `500` response.

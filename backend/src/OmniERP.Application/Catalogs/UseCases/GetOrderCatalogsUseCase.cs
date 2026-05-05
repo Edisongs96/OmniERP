@@ -35,13 +35,15 @@ public sealed class GetOrderCatalogsUseCase
             return WithMetadata(cachedCatalogs, CacheSource, stopwatch.ElapsedMilliseconds);
         }
 
-        var orderStatuses = await _catalogRepository.GetOrderStatusesAsync(cancellationToken);
-        var shippingMethods = await _catalogRepository.GetShippingMethodsAsync(cancellationToken);
+        var orderStatusesTask = _catalogRepository.GetOrderStatusesAsync(cancellationToken);
+        var shippingMethodsTask = _catalogRepository.GetShippingMethodsAsync(cancellationToken);
+
+        await Task.WhenAll(orderStatusesTask, shippingMethodsTask);
 
         var response = new OrderFormCatalogsResponse
         {
-            OrderStatuses = orderStatuses.Select(CatalogMapper.ToResponse).ToArray(),
-            ShippingMethods = shippingMethods.Select(CatalogMapper.ToResponse).ToArray(),
+            OrderStatuses = orderStatusesTask.Result.Select(CatalogMapper.ToResponse).ToArray(),
+            ShippingMethods = shippingMethodsTask.Result.Select(CatalogMapper.ToResponse).ToArray(),
             Metadata = BuildMetadata(SlowSource, durationMs: 0)
         };
 

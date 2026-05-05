@@ -16,9 +16,9 @@ The project is intentionally scoped to two production-style concerns:
 
 ## Current State
 
-This repository currently contains the base monorepo structure, domain model, Application DTOs, Application ports, Application use cases, and Infrastructure adapters for local persistence, caching, catalog simulation, and seed data.
+This repository currently contains the base monorepo structure, domain model, Application DTOs, Application ports, Application use cases, Infrastructure adapters, and REST API endpoints for the order editing PoC.
 
-API endpoints and UI workflows will be added in later steps.
+UI workflows will be added in later steps.
 
 ## Main Folders
 
@@ -33,8 +33,43 @@ API endpoints and UI workflows will be added in later steps.
 - Catalog reads use a slow source simulator.
 - Runtime cache uses `IMemoryCache` behind the Application `ICacheProvider` port.
 
+## Run The API
+
+```powershell
+dotnet run --project backend/src/OmniERP.Api
+```
+
+Local URLs:
+
+- API base URL: `http://localhost:5000`
+- Swagger UI: `http://localhost:5000/swagger`
+
+## REST Endpoints
+
+- `GET /api/v1/health`
+- `GET /api/v1/orders/{id}`
+- `PUT /api/v1/orders/{id}`
+- `GET /api/v1/catalogs/order-form`
+- `POST /api/v1/catalogs/cache/invalidate`
+
+## Manual Validation
+
+- Demo order: `GET http://localhost:5000/api/v1/orders/1001`
+- First catalog call: `GET http://localhost:5000/api/v1/catalogs/order-form` returns metadata source `slow-source`.
+- Second catalog call returns metadata source `cache`.
+- Cache reset: `POST http://localhost:5000/api/v1/catalogs/cache/invalidate`.
+- Concurrency conflict: send `PUT /api/v1/orders/1001` twice with the same stale `version`; the second request returns `409 Conflict`.
+
+Manual request samples are available in `docs/api.http`.
+
+## Test
+
+```powershell
+dotnet test backend/OmniERP.sln
+```
+
 ## Next Build Steps
 
-1. Expose API endpoints and middleware mappings.
-2. Build the Angular order edit feature.
-3. Add integration tests for API behavior.
+1. Build the Angular order edit feature.
+2. Add frontend integration against the REST API.
+3. Add final README walkthrough and screenshots.
