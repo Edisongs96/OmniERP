@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { OrderFormComponent } from './order-form.component';
 import { mockCatalogs, mockOrder } from '../testing/order-test-data';
+import { OrderFormComponent } from './order-form.component';
 
 describe('OrderFormComponent', () => {
   let fixture: ComponentFixture<OrderFormComponent>;
@@ -53,5 +53,27 @@ describe('OrderFormComponent', () => {
       version: mockOrder.version,
       updatedBy: 'frontend.agent',
     });
+  });
+
+  it('should preserve version in emitted UpdateOrderRequest', () => {
+    const orderWithVersion3 = { ...mockOrder, version: 3 };
+    fixture.componentRef.setInput('order', orderWithVersion3);
+    fixture.detectChanges();
+
+    spyOn(component.save, 'emit');
+
+    component.form.setValue({
+      customerName: 'Cliente Demo',
+      customerEmail: 'cliente.demo@omnierp.local',
+      deliveryAddress: 'Calle modificada',
+      internalComment: '',
+      statusId: 1,
+      shippingMethodId: 2,
+    });
+
+    component.submit();
+
+    const emitted = (component.save.emit as jasmine.Spy).calls.mostRecent().args[0];
+    expect(emitted.version).toBe(3);
   });
 });
