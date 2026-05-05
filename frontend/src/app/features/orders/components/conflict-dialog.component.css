@@ -1,0 +1,90 @@
+.conflict-panel {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.conflict-header {
+  align-items: start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h2 {
+  color: #9a3412;
+  font-size: 1.1rem;
+}
+
+.conflict-header span {
+  background: #ffedd5;
+  border-radius: 999px;
+  color: #9a3412;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.55rem;
+}
+
+.comparison-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+article {
+  background: #fff;
+  border: 1px solid #fed7aa;
+  border-radius: 6px;
+  padding: 0.9rem;
+}
+
+dl {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.75rem 0 0;
+}
+
+dt {
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+dd {
+  margin: 0 0 0.4rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+button {
+  background: #c2410c;
+  border: 0;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.65rem 0.9rem;
+}
+
+.secondary {
+  background: #475569;
+}
+
+@media (max-width: 760px) {
+  .comparison-grid {
+    grid-template-columns: 1fr;
+  }
+}

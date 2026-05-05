@@ -16,9 +16,7 @@ The project is intentionally scoped to two production-style concerns:
 
 ## Current State
 
-This repository currently contains the base monorepo structure, domain model, Application DTOs, Application ports, Application use cases, Infrastructure adapters, and REST API endpoints for the order editing PoC.
-
-UI workflows will be added in later steps.
+This repository currently contains the base monorepo structure, domain model, Application DTOs, Application ports, Application use cases, Infrastructure adapters, REST API endpoints, and an initial Angular order edit UI.
 
 ## Main Folders
 
@@ -44,6 +42,19 @@ Local URLs:
 - API base URL: `http://localhost:5000`
 - Swagger UI: `http://localhost:5000/swagger`
 
+## Run The Frontend
+
+```powershell
+cd frontend
+npm install
+npm start
+```
+
+Local URLs:
+
+- Frontend: `http://localhost:4200`
+- Order edit route: `http://localhost:4200/orders/1001`
+
 ## REST Endpoints
 
 - `GET /api/v1/health`
@@ -62,14 +73,24 @@ Local URLs:
 
 Manual request samples are available in `docs/api.http`.
 
+Frontend validation flow:
+
+1. Start the backend API.
+2. Open `http://localhost:4200/orders/1001`.
+3. Verify the order and catalogs load.
+4. Save a valid order change.
+5. Simulate a stale update from another client and verify the UI shows the `409` conflict feedback without merging automatically.
+
 ## Test
 
 ```powershell
 dotnet test backend/OmniERP.sln
+cd frontend
+npm test -- --watch=false
 ```
 
 ## Next Build Steps
 
-1. Build the Angular order edit feature.
-2. Add frontend integration against the REST API.
+1. Reinforce advanced conflict comparison UX.
+2. Add end-to-end validation for cache and optimistic concurrency.
 3. Add final README walkthrough and screenshots.

@@ -1,0 +1,62 @@
+<main class="page-shell">
+  <header class="page-header">
+    <div>
+      <p>Modulo de pedidos</p>
+      <h1>Edicion de pedido</h1>
+    </div>
+    @if (store.order(); as order) {
+      <div class="order-badge">
+        Pedido #{{ order.id }} · Version {{ order.version }}
+      </div>
+    }
+  </header>
+
+  @if (store.loading()) {
+    <p class="info-message">Cargando pedido...</p>
+  }
+
+  @if (store.loadingCatalogs()) {
+    <p class="info-message">Cargando catalogos...</p>
+  }
+
+  @if (store.successMessage(); as successMessage) {
+    <p class="success-message">{{ successMessage }}</p>
+  }
+
+  @if (store.error(); as error) {
+    <p class="error-message">{{ error }}</p>
+  }
+
+  @if (store.catalogs(); as catalogs) {
+    <section class="metadata-panel">
+      <strong>Catalogos cargados desde: {{ catalogs.metadata.source }}</strong>
+      <span>Duracion: {{ catalogs.metadata.durationMs }} ms</span>
+      <span>Cache key: {{ catalogs.metadata.cacheKey }}</span>
+    </section>
+  }
+
+  @if (store.conflict(); as conflict) {
+    <app-conflict-dialog
+      [conflict]="conflict"
+      (reload)="onReloadCurrentOrder()"
+      (close)="store.clearConflict()"
+    />
+  }
+
+  @if (store.order(); as order) {
+    <section class="content-card">
+      <h2>Datos del pedido</h2>
+      <app-order-form
+        [order]="order"
+        [catalogs]="store.catalogs()"
+        [saving]="store.saving()"
+        (save)="onSave($event)"
+      />
+    </section>
+
+    <section class="content-card">
+      <h2>Items del pedido</h2>
+      <app-order-items-table [items]="order.items" />
+    </section>
+  }
+</main>
