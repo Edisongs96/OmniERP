@@ -1,0 +1,82 @@
+flowchart TB
+    %% OmniERP Orders PoC - Clean Architecture overview
+
+    subgraph Users["Users"]
+        Agent["Order Agent"]
+    end
+
+    subgraph Frontend["Frontend - Angular 18+"]
+        OrderEditPage["Order Edit Page"]
+        ReactiveForm["Reactive Form"]
+        FeatureState["Signals Feature State"]
+        ApiServices["HTTP Services"]
+        ConflictFeedback["Conflict Feedback UI"]
+    end
+
+    subgraph Api["Backend - ASP.NET Core Web API"]
+        OrdersController["Orders Controller"]
+        CatalogsController["Catalogs Controller"]
+        ErrorMiddleware["Error Handling Middleware"]
+        DependencyConfig["DI and Composition Root"]
+    end
+
+    subgraph Application["Application Layer"]
+        GetOrder["Get Order Use Case"]
+        UpdateOrder["Update Order Use Case"]
+        GetCatalogs["Get Order Form Catalogs Use Case"]
+        Ports["Ports: repositories, cache, clock"]
+        Dtos["DTOs and Commands"]
+    end
+
+    subgraph Domain["Domain Layer"]
+        OrderAggregate["Order Aggregate"]
+        OrderItem["Order Item"]
+        VersionRule["Optimistic Version Rule"]
+        ConflictException["Order Conflict Exception"]
+    end
+
+    subgraph Infrastructure["Infrastructure Layer"]
+        OrderRepository["EF Order Repository"]
+        CatalogSource["Slow Catalog Source Simulator"]
+        CacheProvider["Memory Cache Provider"]
+        SeedData["Seed Data"]
+        DbContext["EF Core DbContext"]
+    end
+
+    subgraph Data["Local Runtime Data"]
+        Database[("EF InMemory or SQLite")]
+        MemoryCache[("IMemoryCache")]
+        Redis[("Future Redis Adapter")]
+    end
+
+    Agent --> OrderEditPage
+    OrderEditPage --> ReactiveForm
+    OrderEditPage --> FeatureState
+    ReactiveForm --> ApiServices
+    FeatureState --> ApiServices
+    ApiServices --> OrdersController
+    ApiServices --> CatalogsController
+
+    OrdersController --> GetOrder
+    OrdersController --> UpdateOrder
+    CatalogsController --> GetCatalogs
+    ErrorMiddleware --> ConflictFeedback
+
+    GetOrder --> Ports
+    UpdateOrder --> Dtos
+    UpdateOrder --> OrderAggregate
+    UpdateOrder --> VersionRule
+    UpdateOrder --> Ports
+    GetCatalogs --> Ports
+
+    OrderAggregate --> OrderItem
+    VersionRule --> ConflictException
+
+    Ports --> OrderRepository
+    Ports --> CacheProvider
+    Ports --> CatalogSource
+    OrderRepository --> DbContext
+    DbContext --> Database
+    CacheProvider --> MemoryCache
+    CacheProvider -. "same port, future adapter" .-> Redis
+    CatalogSource --> SeedData

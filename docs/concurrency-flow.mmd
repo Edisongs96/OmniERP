@@ -1,0 +1,38 @@
+sequenceDiagram
+    autonumber
+    participant A1 as Agent 1
+    participant A2 as Agent 2
+    participant FE1 as Angular UI - Agent 1
+    participant FE2 as Angular UI - Agent 2
+    participant API as Orders API
+    participant UC as UpdateOrderUseCase
+    participant Repo as Order Repository
+
+    A1->>FE1: Opens order 1001
+    FE1->>API: GET /api/v1/orders/1001
+    API->>Repo: Load order
+    Repo-->>API: Order version 1
+    API-->>FE1: 200 OK with version 1
+
+    A2->>FE2: Opens order 1001
+    FE2->>API: GET /api/v1/orders/1001
+    API->>Repo: Load order
+    Repo-->>API: Order version 1
+    API-->>FE2: 200 OK with version 1
+
+    A1->>FE1: Changes delivery address
+    FE1->>API: PUT /api/v1/orders/1001 with version 1
+    API->>UC: Update order command
+    UC->>Repo: Compare submitted version 1 with current version 1
+    Repo-->>UC: Version matches
+    UC->>Repo: Persist changes and increment to version 2
+    API-->>FE1: 200 OK with version 2
+
+    A2->>FE2: Changes internal comment
+    FE2->>API: PUT /api/v1/orders/1001 with stale version 1
+    API->>UC: Update order command
+    UC->>Repo: Compare submitted version 1 with current version 2
+    Repo-->>UC: Version mismatch
+    UC-->>API: OrderConflictException
+    API-->>FE2: 409 Conflict with current order snapshot
+    FE2-->>A2: Shows conflict feedback without overwriting data
