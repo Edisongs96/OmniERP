@@ -16,9 +16,9 @@ The project is intentionally scoped to two production-style concerns:
 
 ## Current State
 
-This repository currently contains the base monorepo structure, domain model, Application DTOs, Application ports, and Application use cases for order lookup, safe order update, and order form catalog retrieval through cache-aside.
+This repository currently contains the base monorepo structure, domain model, Application DTOs, Application ports, Application use cases, and Infrastructure adapters for local persistence, caching, catalog simulation, and seed data.
 
-Infrastructure adapters, API endpoints, persistence, concrete cache implementation, and UI workflows will be added in later steps.
+API endpoints and UI workflows will be added in later steps.
 
 ## Main Folders
 
@@ -26,9 +26,15 @@ Infrastructure adapters, API endpoints, persistence, concrete cache implementati
 - `frontend/`: Angular 18+ application.
 - `docs/`: Mermaid diagrams and manual API request file.
 
+## Infrastructure
+
+- Local persistence uses EF Core InMemory for the PoC.
+- Initial seed creates demo order `1001`.
+- Catalog reads use a slow source simulator.
+- Runtime cache uses `IMemoryCache` behind the Application `ICacheProvider` port.
+
 ## Next Build Steps
 
-1. Implement infrastructure adapters for persistence, repositories, cache, seed data, and catalog simulation.
-2. Expose API endpoints and middleware mappings.
-3. Build the Angular order edit feature.
-4. Add integration tests for API behavior and infrastructure cache behavior.
+1. Expose API endpoints and middleware mappings.
+2. Build the Angular order edit feature.
+3. Add integration tests for API behavior.

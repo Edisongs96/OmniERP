@@ -67,7 +67,30 @@ Expected behavior:
 
 ## 8. Open Decisions
 
-- EF Core InMemory vs SQLite for local persistence.
 - Exact API response contract for concurrency conflicts.
 - Whether the 24 hour catalog cache TTL remains fixed or becomes runtime configuration.
 - Frontend conflict resolution UX details.
+
+## 9. Infrastructure Adapters
+
+Decision: use EF Core InMemory as the local persistence adapter for the PoC.
+
+Reason:
+
+- Keeps local execution lightweight.
+- Allows repository behavior and seed data to be tested without external services.
+- Can be replaced by SQLite or a production database without changing Application use cases.
+
+Decision: implement `ICacheProvider` with `IMemoryCache` for the PoC.
+
+Reason:
+
+- Demonstrates backend cache behavior with minimal operational overhead.
+- Keeps Redis as a future adapter behind the same Application port.
+
+Decision: catalog repositories delegate to `SlowCatalogSource`.
+
+Reason:
+
+- Keeps catalog latency simulation in Infrastructure.
+- Keeps cache policy in `GetOrderCatalogsUseCase`, not in repositories.
